@@ -157,11 +157,41 @@ html, body {
 .bal-row {
   display: flex;
   justify-content: space-between;
+  align-items: center;
   gap: 10px;
-  padding: 4px 8px;
+  padding: 5px 8px;
   border-radius: 6px;
   background: var(--color-background-secondary, rgba(128,128,128,0.06));
 }
+.holding-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 10px;
+  border-radius: 7px;
+  background: var(--color-background-secondary, rgba(128,128,128,0.06));
+  border: 1px solid var(--color-border-secondary, rgba(128,128,128,0.12));
+}
+.holding-left { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.holding-head { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.holding-right { display: flex; flex-direction: column; align-items: flex-end; gap: 1px; flex-shrink: 0; }
+.alloc-chip {
+  font-size: 10.5px;
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: rgba(56, 189, 248, 0.14);
+  color: var(--color-text-info, #0284c7);
+}
+.hold-chip {
+  font-size: 10.5px;
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: rgba(245, 158, 11, 0.16);
+  color: var(--color-text-warning, #b45309);
+}
+.pnl-pos { color: var(--color-text-success, #059669); }
+.pnl-neg { color: var(--color-text-danger, #dc2626); }
 `.trim();
 
 const html = `<!DOCTYPE html>

@@ -99,9 +99,19 @@ class CoinbaseMcpAppTests(unittest.TestCase):
 
         bal = app.call_tool("coinbase_balance", {})
         self.assertFalse(bal["isError"])
-        self.assertTrue(bal["structuredContent"]["demo_mode"])
-        self.assertEqual(bal["structuredContent"]["balances"]["usd_fiat"][0]["available_balance"], "250")
-        self.assertEqual(bal["structuredContent"]["balances"]["stablecoins"][0]["currency"], "USDC")
+        bal_sc = bal["structuredContent"]
+        self.assertTrue(bal_sc["demo_mode"])
+        self.assertEqual(bal_sc["balances"]["usd_fiat"][0]["available_balance"], "250")
+        self.assertEqual([s["currency"] for s in bal_sc["balances"]["stablecoins"]], ["USDC"])
+        self.assertEqual(bal_sc["hidden_zero_count"], 1)
+        crypto_rows = bal_sc["balances"]["crypto"]
+        self.assertEqual([c["currency"] for c in crypto_rows], ["BTC", "ETH"])
+        self.assertEqual(crypto_rows[0]["advisory_usd"], "2375")
+        self.assertEqual(crypto_rows[0]["allocation_pct"], "67.4")
+        self.assertEqual(crypto_rows[0]["unrealized_pnl_usd"], "320.5")
+        self.assertEqual(bal_sc["advisory_breakdown"]["total_unrealized_pnl_usd"], "275.25")
+        self.assertEqual(len(bal_sc["open_orders"]), 1)
+        self.assertEqual(bal_sc["open_orders"][0]["order_id"], "demo-open-order-001")
 
         prev = app.call_tool("coinbase_quote_preview", {"product_id": "BTC-USDC", "side": "BUY", "quote_size": "10.00"})
         self.assertFalse(prev["isError"])

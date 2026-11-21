@@ -573,6 +573,7 @@ class CoinbaseMcpApp:
         usd_fiat: list[dict[str, Any]] = []
         stablecoins: list[dict[str, Any]] = []
         crypto: list[dict[str, Any]] = []
+        hidden_zero_count = 0
         for a in raw_accounts:
             ccy = str(a.get("currency") or "").upper()
             atype = str(a.get("type") or "")
@@ -587,20 +588,80 @@ class CoinbaseMcpApp:
             elif ccy in STABLECOIN_SYMBOLS:
                 if Decimal(avail) > 0 or Decimal(hold) > 0:
                     stablecoins.append(row)
+                else:
+                    hidden_zero_count += 1
             elif Decimal(avail) > 0 or Decimal(hold) > 0:
                 crypto.append(row)
+            else:
+                hidden_zero_count += 1
 
         advisory = None
+        positions_by_asset: dict[str, dict[str, Any]] = {}
         if include_breakdown:
             try:
-                bd = (cb.get_portfolio_breakdown(perms["portfolio_uuid"]).get("breakdown") or {}).get("portfolio_balances") or {}
+                bd_full = cb.get_portfolio_breakdown(perms["portfolio_uuid"]).get("breakdown") or {}
+                pb = bd_full.get("portfolio_balances") or {}
+                spot_pos = bd_full.get("spot_positions") if isinstance(bd_full.get("spot_positions"), list) else []
+                total_pnl = Decimal("0")
+                any_pnl = False
+                for pos in spot_pos:
+                    if not isinstance(pos, dict):
+                        continue
+                    sym = str(pos.get("asset") or "").strip().upper()
+                    if not sym:
+                        continue
+                    fiat_val = dec_str(pos.get("total_balance_fiat"))
+                    alloc_raw = dec_str(pos.get("allocation"))
+                    alloc_pct = dec_str(Decimal(alloc_raw) * Decimal("100")) if alloc_raw is not None else None
+                    pnl_val = dec_str(pos.get("unrealized_pnl"))
+                    if pnl_val is not None:
+                        total_pnl += Decimal(pnl_val)
+                        any_pnl = True
+                    cb_obj = pos.get("cost_basis")
+                    cost_basis = dec_str(cb_obj.get("value")) if isinstance(cb_obj, dict) else dec_str(cb_obj)
+                    positions_by_asset[sym] = {
+                        "advisory_usd": fiat_val,
+                        "allocation_pct": alloc_pct,
+                        "unrealized_pnl_usd": pnl_val,
+                        "cost_basis_usd": cost_basis,
+                    }
                 advisory = {
-                    "total_balance_usd": dec_str((bd.get("total_balance") or {}).get("value")),
-                    "total_cash_equivalent_balance_usd": dec_str((bd.get("total_cash_equivalent_balance") or {}).get("value")),
-                    "total_crypto_balance_usd": dec_str((bd.get("total_crypto_balance") or {}).get("value")),
+                    "total_balance_usd": dec_str((pb.get("total_balance") or {}).get("value")),
+                    "total_cash_equivalent_balance_usd": dec_str((pb.get("total_cash_equivalent_balance") or {}).get("value")),
+                    "total_crypto_balance_usd": dec_str((pb.get("total_crypto_balance") or {}).get("value")),
+                    "total_unrealized_pnl_usd": dec_str(total_pnl) if any_pnl else None,
+                    "positions_by_asset": positions_by_asset,
                 }
             except AppError:
                 advisory = None
+
+        def _enrich_sort(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+            for r in rows:
+                pos = positions_by_asset.get(r["currency"])
+                if pos:
+                    r.update(pos)
+            def _key(r: dict[str, Any]) -> tuple[Decimal, Decimal, str]:
+                try:
+                    u = Decimal(str(r.get("advisory_usd"))) if r.get("advisory_usd") not in (None, "") else Decimal("-1")
+                except InvalidOperation:
+                    u = Decimal("-1")
+                q = Decimal(str(r.get("available_balance") or "0")) + Decimal(str(r.get("hold") or "0"))
+                return (-u, -q, str(r.get("currency") or ""))
+            rows.sort(key=_key)
+            return rows
+
+        usd_fiat = _enrich_sort(usd_fiat)
+        stablecoins = _enrich_sort(stablecoins)
+        crypto = _enrich_sort(crypto)
+
+        open_orders: list[dict[str, Any]] = []
+        try:
+            ord_page = cb.get_orders_batch_page(limit=25, order_status=["OPEN", "PENDING", "QUEUED"])
+            for raw_ord in ord_page.get("orders") or []:
+                if isinstance(raw_ord, dict):
+                    open_orders.append(_normalize_order(raw_ord))
+        except Exception:  # noqa: BLE001
+            open_orders = []
 
         fee_tier = None
         try:
@@ -633,6 +694,8 @@ class CoinbaseMcpApp:
             "account": {"alias": acct, "portfolio_type": perms["portfolio_type"]},
             "permissions": {"can_view": perms["can_view"], "can_trade": perms["can_trade"], "can_transfer": perms["can_transfer"]},
             "balances": {"usd_fiat": usd_fiat, "stablecoins": stablecoins, "crypto": crypto},
+            "hidden_zero_count": hidden_zero_count,
+            "open_orders": open_orders,
             "advisory_breakdown": advisory,
             "fee_tier": fee_tier,
             "recent_receipts": recent,
@@ -640,9 +703,13 @@ class CoinbaseMcpApp:
         }
         usd_val = usd_fiat[0]["available_balance"] if usd_fiat else "0"
         stables = ", ".join(f"{s['currency']}={s['available_balance']}" for s in stablecoins) or "none"
+        top_holdings = ", ".join(
+            f"{c['currency']} (${c['advisory_usd']})" if c.get("advisory_usd") else f"{c['currency']} ({c['available_balance']})"
+            for c in crypto[:5]
+        ) or "none"
         prefix = "[DEMO SYNTHETIC] " if self.demo_mode else ""
         return {
-            "content": [{"type": "text", "text": f"{prefix}Coinbase Spot ({perms['portfolio_type']}, view-only): USD fiat={usd_val}; stablecoins(separate)={stables}; spot crypto={len(crypto)}; advisory USD={(advisory or {}).get('total_balance_usd', 'unavailable')}."}],
+            "content": [{"type": "text", "text": f"{prefix}Coinbase Spot ({perms['portfolio_type']}, view-only): USD fiat={usd_val}; stablecoins(separate)={stables}; funded spot crypto={len(crypto)} (top: {top_holdings}); open orders={len(open_orders)}; advisory USD={(advisory or {}).get('total_balance_usd', 'unavailable')}."}],
             "structuredContent": structured,
             "_meta": {"coinbaseApp/widget": "balance-dashboard"},
             "isError": False,

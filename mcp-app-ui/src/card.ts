@@ -482,16 +482,72 @@ function renderOrderStatus(data: JsonMap): string {
   `;
 }
 
+function fmtUsd(raw: unknown, { signed = false }: { signed?: boolean } = {}): string {
+  if (raw === null || raw === undefined || raw === "") return "—";
+  const num = Number(raw);
+  if (!Number.isFinite(num)) return String(raw);
+  const abs = Math.abs(num).toLocaleString("en-US", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+  if (num < 0) return `-$${abs}`;
+  if (signed && num > 0) return `+$${abs}`;
+  return `$${abs}`;
+}
+
+function fmtPct(raw: unknown): string {
+  if (raw === null || raw === undefined || raw === "") return "";
+  const num = Number(raw);
+  if (!Number.isFinite(num)) return "";
+  return `${num.toFixed(1)}%`;
+}
+
+function pnlClass(raw: unknown): string {
+  const num = Number(raw);
+  if (!Number.isFinite(num) || num === 0) return "muted";
+  return num > 0 ? "pnl-pos" : "pnl-neg";
+}
+
 function renderBalanceRows(items: unknown[], emptyLabel: string): string {
   if (!items.length) return `<div class="muted small">${escapeHtml(emptyLabel)}</div>`;
   return items
-    .slice(0, 8)
     .map((raw) => {
       const it = raw as JsonMap;
+      const cur = asStr(it, "currency");
+      const avail = asStr(it, "available_balance", "0");
+      const hold = asStr(it, "hold", "0");
+      const hasHold = Number(hold) > 0;
+      const alloc = fmtPct(it.allocation_pct);
+      const hasUsd = it.advisory_usd !== null && it.advisory_usd !== undefined && it.advisory_usd !== "";
+      const hasPnl = it.unrealized_pnl_usd !== null && it.unrealized_pnl_usd !== undefined && it.unrealized_pnl_usd !== "";
+      return `<div class="holding-row">
+        <div class="holding-left">
+          <div class="holding-head">
+            <span class="mono bold">${escapeHtml(cur)}</span>
+            ${alloc ? `<span class="alloc-chip mono">${escapeHtml(alloc)}</span>` : ""}
+            ${hasHold ? `<span class="hold-chip mono">hold ${escapeHtml(hold)}</span>` : ""}
+          </div>
+          <div class="mono muted small">${escapeHtml(avail)} ${escapeHtml(cur)}</div>
+        </div>
+        <div class="holding-right">
+          ${hasUsd ? `<div class="mono bold">${escapeHtml(fmtUsd(it.advisory_usd))}</div>` : `<div class="mono muted">—</div>`}
+          ${hasPnl ? `<div class="mono small ${pnlClass(it.unrealized_pnl_usd)}">${escapeHtml(fmtUsd(it.unrealized_pnl_usd, { signed: true }))}</div>` : ""}
+        </div>
+      </div>`;
+    })
+    .join("");
+}
+
+function renderOpenOrders(items: unknown[]): string {
+  if (!items.length) return `<div class="muted small">No open spot orders.</div>`;
+  return items
+    .map((raw) => {
+      const o = raw as JsonMap;
+      const side = asStr(o, "side", "").toUpperCase();
+      const sideClass = side === "SELL" ? "pill-sell" : "pill-buy";
       return `<div class="bal-row">
-        <span class="mono bold">${escapeHtml(asStr(it, "currency"))}</span>
-        <span class="mono">avail ${escapeHtml(asStr(it, "available_balance", "0"))}</span>
-        <span class="mono muted">hold ${escapeHtml(asStr(it, "hold", "0"))}</span>
+        <span class="mono"><span class="pill ${sideClass}">${escapeHtml(side)}</span> ${escapeHtml(asStr(o, "product_id"))} · ${escapeHtml(asStr(o, "order_type"))}</span>
+        <span class="mono muted">${escapeHtml(asStr(o, "provider_status"))} · hold ${escapeHtml(asStr(o, "outstanding_hold_amount", "0"))}</span>
       </div>`;
     })
     .join("");
@@ -503,10 +559,13 @@ function renderBalanceDashboard(data: JsonMap): string {
   const advisory = asObj(data, "advisory_breakdown");
   const feeTier = asObj(data, "fee_tier");
   const receipts = asArr(data, "recent_receipts");
+  const openOrders = asArr(data, "open_orders");
+  const cryptoItems = asArr(balances, "crypto");
+  const hiddenZeros = Number(data.hidden_zero_count || 0);
 
   const receiptLines = receipts.length
     ? receipts
-        .slice(0, 4)
+        .slice(0, 6)
         .map((raw) => {
           const r = raw as JsonMap;
           return `<div class="bal-row">
@@ -516,6 +575,9 @@ function renderBalanceDashboard(data: JsonMap): string {
         })
         .join("")
     : `<div class="muted small">No local dry-run receipts yet.</div>`;
+
+  const totalPnlRaw = advisory ? advisory.total_unrealized_pnl_usd : null;
+  const hasTotalPnl = totalPnlRaw !== null && totalPnlRaw !== undefined && totalPnlRaw !== "";
 
   return `
     <div class="card">
@@ -535,39 +597,39 @@ function renderBalanceDashboard(data: JsonMap): string {
       ${
         advisory
           ? `<div class="summary-strip">
-              <div><span class="k">Advisory Total (USD)</span><div class="big mono">$${escapeHtml(asStr(advisory, "total_balance_usd", "—"))}</div></div>
-              <div><span class="k">Cash Equiv (USD+USDC)</span><div class="mono">$${escapeHtml(asStr(advisory, "total_cash_equivalent_balance_usd", "—"))}</div></div>
-              <div><span class="k">Crypto (USD)</span><div class="mono">$${escapeHtml(asStr(advisory, "total_crypto_balance_usd", "—"))}</div></div>
+              <div><span class="k">Advisory Total (USD)</span><div class="big mono">${escapeHtml(fmtUsd(advisory.total_balance_usd))}</div></div>
+              <div><span class="k">Crypto (USD)</span><div class="mono bold">${escapeHtml(fmtUsd(advisory.total_crypto_balance_usd))}</div></div>
+              <div><span class="k">Cash Equiv (USD+USDC)</span><div class="mono bold">${escapeHtml(fmtUsd(advisory.total_cash_equivalent_balance_usd))}</div></div>
+              ${hasTotalPnl ? `<div><span class="k">Unrealized P&amp;L</span><div class="mono bold ${pnlClass(totalPnlRaw)}">${escapeHtml(fmtUsd(totalPnlRaw, { signed: true }))}</div></div>` : ""}
             </div>`
           : ""
       }
 
+      <div class="section">
+        <div class="sec-title">Spot Crypto (${cryptoItems.length} funded · sorted by USD value)</div>
+        ${renderBalanceRows(cryptoItems, "No funded spot crypto")}
+      </div>
       <div class="section">
         <div class="sec-title">USD Fiat Cash</div>
         ${renderBalanceRows(asArr(balances, "usd_fiat"), "No USD fiat account")}
       </div>
       <div class="section">
         <div class="sec-title">Stablecoins (separate from USD fiat)</div>
-        ${renderBalanceRows(asArr(balances, "stablecoins"), "No stablecoin balances")}
+        ${renderBalanceRows(asArr(balances, "stablecoins"), "No funded stablecoins")}
       </div>
       <div class="section">
-        <div class="sec-title">Spot Crypto</div>
-        ${renderBalanceRows(asArr(balances, "crypto"), "No non-zero spot crypto")}
+        <div class="sec-title">Open Spot Orders (${openOrders.length})</div>
+        ${renderOpenOrders(openOrders)}
       </div>
       <div class="section">
         <div class="sec-title">Recent MCP App Dry-Run Receipts</div>
         ${receiptLines}
       </div>
 
-      ${
-        feeTier
-          ? `<div class="meta-bar mono">
-              <span>tier:${escapeHtml(asStr(feeTier, "pricing_tier"))}</span>
-              <span>maker:${escapeHtml(asStr(feeTier, "maker_fee_rate"))}</span>
-              <span>taker:${escapeHtml(asStr(feeTier, "taker_fee_rate"))}</span>
-            </div>`
-          : ""
-      }
+      <div class="meta-bar mono">
+        ${feeTier ? `<span>tier:${escapeHtml(asStr(feeTier, "pricing_tier"))}</span><span>maker:${escapeHtml(asStr(feeTier, "maker_fee_rate"))}</span><span>taker:${escapeHtml(asStr(feeTier, "taker_fee_rate"))}</span>` : ""}
+        ${hiddenZeros > 0 ? `<span>${hiddenZeros} zero-balance wallet${hiddenZeros === 1 ? "" : "s"} hidden</span>` : ""}
+      </div>
     </div>
   `;
 }
