@@ -1,0 +1,21 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "coinbase-mcp-app"
+version = "0.1.0"
+description = "Unofficial cross-host SEP-1865 MCP App for Coinbase Advanced Trade Spot (Antigravity, Claude, Codex)"
+readme = "README.md"
+license = {text = "MIT"}
+requires-python = ">=3.12"
+dependencies = []
+
+[project.scripts]
+coinbase-mcp-app = "coinbase_mcp_app.server:main"
+
+[tool.setuptools.packages.find]
+include = ["coinbase_mcp_app*"]
+
+[tool.setuptools.package-data]
+coinbase_mcp_app = ["ui/*.html"]

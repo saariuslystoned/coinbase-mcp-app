@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "coinbase-mcp-app": {
+      "command": "bash",
+      "args": [
+        "${PLUGIN_ROOT}/bin/coinbase-mcp-app",
+        "--data-dir",
+        "${PLUGIN_DATA}/private"
+      ]
+    }
+  }
+}

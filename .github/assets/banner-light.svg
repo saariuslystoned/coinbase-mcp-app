@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 320" width="1200" height="320" fill="none">
+  <defs>
+    <linearGradient id="bg-light" x1="0" y1="0" x2="1200" y2="320" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#F8FAFC"/>
+      <stop offset="55%" stop-color="#F1F5F9"/>
+      <stop offset="100%" stop-color="#ECFDF5"/>
+    </linearGradient>
+    <linearGradient id="accent-light" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0284C7"/>
+      <stop offset="100%" stop-color="#059669"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="320" rx="20" fill="url(#bg-light)"/>
+  <rect x="1.5" y="1.5" width="1197" height="317" rx="18.5" stroke="#CBD5E1" stroke-width="3"/>
+  <g transform="translate(64, 72)">
+    <rect width="128" height="128" rx="28" fill="#0F172A"/>
+    <path d="M86 46C80.8 38.8 72.5 34 63 34C47.5 34 35.5 46.8 35.5 64C35.5 81.2 47.5 94 63 94C72.5 94 80.8 89.2 86 82" stroke="#F8FAFC" stroke-width="11" stroke-linecap="round"/>
+    <circle cx="92" cy="88" r="15" fill="#10B981" stroke="#0F172A" stroke-width="4"/>
+    <path d="M85.5 88L90 92.5L98.5 83.5" stroke="#FFFFFF" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+  <text x="228" y="122" fill="#0F172A" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Inter, sans-serif" font-size="44" font-weight="800" letter-spacing="-0.02em">coinbase-mcp-app</text>
+  <text x="228" y="164" fill="#475569" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Inter, sans-serif" font-size="21" font-weight="500">One open SEP-1865 MCP App for Antigravity, Claude &amp; Codex — zero Skybridge lock-in.</text>
+  <g transform="translate(228, 192)">
+    <rect width="176" height="34" rx="17" fill="#D1FAE5" stroke="#059669" stroke-opacity="0.35"/>
+    <text x="88" y="22" text-anchor="middle" fill="#065F46" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="13" font-weight="700">1-CLICK TRADE CARD</text>
+    <rect x="190" width="188" height="34" rx="17" fill="#E0F2FE" stroke="#0284C7" stroke-opacity="0.35"/>
+    <text x="284" y="22" text-anchor="middle" fill="#075985" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="13" font-weight="700">ZERO-NETWORK IFRAME</text>
+    <rect x="392" width="196" height="34" rx="17" fill="#FEF3C7" stroke="#D97706" stroke-opacity="0.35"/>
+    <text x="490" y="22" text-anchor="middle" fill="#92400E" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="13" font-weight="700">VIEW-ONLY · DRY-RUN</text>
+    <rect x="602" width="176" height="34" rx="17" fill="#E2E8F0" stroke="#64748B" stroke-opacity="0.35"/>
+    <text x="690" y="22" text-anchor="middle" fill="#334155" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="13" font-weight="700">PURE PYTHON STDLIB</text>
+  </g>
+  <rect x="64" y="266" width="1072" height="2" fill="url(#accent-light)" fill-opacity="0.4"/>
+  <text x="64" y="295" fill="#64748B" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="13">UNOFFICIAL COMMUNITY MCP APP · NOT AFFILIATED WITH COINBASE · MIT LICENSE</text>
+</svg>

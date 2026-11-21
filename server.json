@@ -1,0 +1,28 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.saariuslystoned/coinbase-mcp-app",
+  "description": "Unofficial cross-host SEP-1865 MCP App for Coinbase Advanced Trade Spot (view-only balances + inline 1-click dry-run trade cards across Antigravity, Claude, and Codex).",
+  "repository": {
+    "url": "https://github.com/saariuslystoned/coinbase-mcp-app",
+    "source": "github"
+  },
+  "version": "0.1.0",
+  "packages": [
+    {
+      "registryType": "pypi",
+      "identifier": "coinbase-mcp-app",
+      "version": "0.1.0",
+      "transport": {
+        "type": "stdio"
+      },
+      "environmentVariables": [
+        {
+          "name": "COINBASE_KEY_FILE",
+          "description": "Path to a mode-0600 view-only Coinbase CDP ECDSA (ES256) JSON key file outside Git.",
+          "isRequired": false,
+          "isSecret": false
+        }
+      ]
+    }
+  ]
+}

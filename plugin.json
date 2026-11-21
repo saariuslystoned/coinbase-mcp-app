@@ -1,0 +1,14 @@
+{
+  "name": "coinbase-mcp-app",
+  "displayName": "Coinbase Spot Trade Card (Unofficial)",
+  "version": "0.1.0",
+  "description": "Unofficial open-source SEP-1865 MCP App for Coinbase Advanced Trade Spot: view-only portfolio panel and inline 1-click dry-run trade confirmation cards across Antigravity, Claude, and Codex.",
+  "logo": "assets/logo.svg",
+  "homepage": "https://github.com/saariuslystoned/coinbase-mcp-app",
+  "repository": "https://github.com/saariuslystoned/coinbase-mcp-app",
+  "suggestedPrompts": [
+    "Show my Coinbase spot balances and fee tier",
+    "Preview buying $10 of BTC-USDC on Coinbase",
+    "Check my Coinbase order status and recent dry-run receipts"
+  ]
+}
